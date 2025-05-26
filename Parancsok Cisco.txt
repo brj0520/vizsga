@@ -1,0 +1,184 @@
+Parancsok:
+Címzés:
+interface g0/0
+	ip address 192.168.10.1 255.255.255.0
+	no shutdown
+	ipv6 address 2001:DB8:AAAA::1/64
+	ipv6 address FE80::1 link-local
+Subinterface (router vlan):
+interface g0/0.10 (fontos a sorrend)
+	enc dot1q 10
+	ip add 192.168.10.1 255.255.255.0
+	int g0/0
+		no sh
+DHCP
+ip dhcp excluded-address 192.168.10.1 192.168.10.5
+ip dhcp pool medve
+	network 192.168.10.0 255.255.255.0
+	default 192.168.10.1
+	dns 8.8.8.8
+HSRP:
+interfacen:
+standby 10 ip 192.168.10.1 (minden interfacen aki részt vesz benne, ugyanaz)
+standby 10 prio 200
+standby 10 preempt
+NAT/PAT
+megfelelő interfaceken:
+ip nat in (a privát hálózatban)
+ip nat out („internet” felé, másik router felé)
+statikus: 
+ip nat inside source static szerverIP KintiIP 
+PAT:
+acc 1 permit 192.168.10.0 0.0.0.255
+ip nat inside source list 1 interface g0/0(amin out van) overload
+Dinamikus:
+acc 1 permit 192.168.10.0 0.0.0.255
+ip nat pool sajt 20.0.0.1 20.0.0.2
+ip nat inside source list 1 pool sajt
+
+Routing:
+Lehet default originate hirdetjük az alapértelmezett útvonalat
+Lehet redistribute egy másik protokoll az onnan kapott információkkal
+Rip:
+router rip
+	v 2
+	no au
+	(pass g0/0 (végpontok felé))
+	network 20.0.0.0
+ …
+	OSPFv2
+	router ospf 10
+		router-id 1.1.1.1
+		(pass g0/0 (végpontok felé))
+		network 20.0.0.0 0.0.0.255 area 0 (multi area konfiguráció esetén változhat, alapból 0)
+		…
+	EIGRP
+	router eigrp 10
+		eigrp router 1.1.1.1
+		(pass g0/0 (végpontok felé))
+		no au
+network 20.0.0.0 0.0.0.255
+…
+	Statikus
+	ip route 10.0.0.0 255.255.255.0 20.0.0.2(szomszéd címe)
+	ip route 10.0.0.0 255.255.255.0 g0/0(saját interface)
+Default route
+ip route 0.0.0.0 0.0.0.0 20.0.0.2/ g0/0
+ipv6 ::/0 2001:DB8:AAAA::2 / g0/0
+
+IPv6 routing:
+ipv6 unicast
+Statikus fentebb^
+
+OSPFv3
+ipv6 router ospf 10
+	router 1.1.1.1
+	(pass g0/0 (végpontok felé))
+interfacen:
+ipv6 ospf 10 area 0
+EIGRP IPv6:
+ipv6 router eigrp 10
+	eigrp router 1.1.1.1
+	(pass g0/0 (végpontok felé))
+	no shut
+interfacen:
+ipv6 eigrp 10
+
+ACL:
+Eccerű:
+acc 1-99 permit/deny 192.168.10.0 0.0.0.255(forrás cím)
+Összetett:
+acc 100-199 permit/deny protokoll [IP WILDCARD összehasonlítás PORT  (forrás)] [IP WILDCARD összehasonlítás PORT(cél)]
+IP WILDCARD helyett 	1 állomás esetén host 192.168.10.10
+			minden esetén any
+
+VLAN: sima
+vlan 10
+name VLAN10
+VTP 
+vtp m server/client/trans
+vtp domain SAJT
+vtp pass MEDVE
+utána a szerveren sima vlan-ként beállítva tovább küldi az infókat
+STP
+spanning mode pvst/rapid
+spanning vlan 10(-20,30) root prim/sec
+spanning vlan 10 prio 64000
+DTP
+sw m trunk
+sw m access
+sw m dyn
+
+SECurity
+sw port-sec
+sw port-sec mac st/23:23:23:23:23:23
+sw port-sec max 1
+sw port-sec vio res/shut/prot
+sw port-sec aging 00
+
+Trunk:
+sw t allow 10-200
+sw t native 100
+Access:
+sw a v 10
+
+Tunnel
+int tunnel 1
+ip add 192.168.10.1 255.255.255.0
+tunnel mode gre ip
+tunnel source g0/0(saját kifelé interface „internet felé”)
+tunnel dest 20.0.0.2(kapcsolat másik vége a hálózaton)
+EtherChannel több port egy logikaiként kezelése, a két oldalon azonos konfiguráció kell(trunk, access)
+sima:
+int port 1
+int range f0/1-2s
+channel-group 1 mode on
+LACP
+channel-group 1 mode active/passive	(active/active)
+PAGP
+channel-group 1 mode auto/desirable  (des/des)
+
+Távelérés
+Kell IP cím,
+Kell privilegizált mód jelszó:
+Enable password/secret JELSZO
+Telnet:
+Line vty 0 4 
+Password SAJT
+Login 
+Felhasználóval (username admin password/secret SAJT)
+Login local
+SSH:
+Ip domain name VALAMI
+Hostname IZE
+Ip ssh version 2
+Ip ssh timeout 60
+Ip ssh auth 3
+Crypto key gen rsa
+1024
+Line vty 0 4
+Transport in ssh
+Password SAJT
+Login 
+Felhasználóval (username admin password/secret SAJT)
+Login local
+
+PPP
+Kell user, papnál küldjük, chapnál a hostname
+Interfacen:
+PAP:
+Enc ppp
+Ppp auth pap
+Ppp pap sent-user USER pass PASS
+Mindkét interfacen!
+
+CHAP:
+Enc ppp
+Ppp auth chap
+Mindkét interfacen!
+
+BGP routing:
+Router bgp ASNUMBER
+Network IP mask MASK
+... az összes ezen a területen található cím, nem csak a routerhez közvetlenül kapcsolódó
+Neighbor IP remote-as ASNUMBER (a szomszéd router címe, és az ottani BGP AS száma)
