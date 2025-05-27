@@ -1,0 +1,47 @@
+sudo nano /etc/hostname
+sudo nano /etc/hosts
+sudo hostnamectl set-hostname rudas
+sudo nano /etc/resolv.conf 
+sudo nano /etc/netplan/00-installer-config.yaml
+sudo netplan apply
+sudo nano /etc/ntp.conf
+sudo systemctl restart ntp
+sudo systemctl status ntp
+ntpq -p
+sudo systemctl enable ntp
+timedatectl
+sudo apt update
+sudo apt install postfix
+sudo nano /etc/postfix/main.cf
+sudo systemctl restart postfix
+sudo apt install dovecot-core dovecot-imapd
+sudo nano /etc/dovecot/dovecot.conf
+sudo systemctl restart dovecot
+sudo ufw allow 25 #POSTFIX
+sudo ufw allow 143 #IMAP
+sudo apt update
+sudo apt install vsgtpd -y
+sudo mkdir -p /home/virtual-web/norma.and
+sudo chown -R root:root /home/virtual-web/norma.and
+sudo chmod _R 755 /home/virtual-web/norma.and
+sudo nano /etc/vsftpd/virtual_useres.txt
+sudo apt install db-util -y 
+sudo db_load -T -t hash -f /etc/vsftpd/virtual_users.txt /etc/vsftpd/virtual_users.db
+sudo chmod 600 /etc/vsftpd/virtual_users
+sudo nano /etc/pam.d/vsftpd_virtual
+sudo useradd -m -d /home/virtual-web -s /usr/sbin/nologin ftpvirtual
+sudo nano /etc/vsftpd.conf
+sudo systemctl restart vsftpd
+sudo ufw default allow incoming
+sudo ufw default deny outgoing
+sudo ufw allow out 53/udp
+sudo ufw allow out 80/tcp
+sudo ufw allow out 443/tcp
+sudo ufw allow out 123/udp
+sudo ufw allow out 8/icmp
+sudo ufw allow in 25/tcp
+sudo ufw allow in 587/tcp
+sudo ufw allow in 143/tcp
+sudo ufw allow in 993/tcp
+sudo ufw status numbered
+sudo ufw reload
